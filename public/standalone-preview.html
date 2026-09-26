@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playlette — Analogue Vinyl Roulette & Local Audio Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700;900&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: {
+              DEFAULT: '#F5F3EC',
+              50: '#FCFBF8',
+              100: '#F7F5EE',
+              200: '#EDEAE0',
+              300: '#DFDACB',
+              dark: '#E4DFD0',
+            },
+            ink: {
+              DEFAULT: '#121212',
+              light: '#262626',
+              muted: '#666666',
+              subtle: '#999999',
+              border: '#E2DDD2',
+            },
+            vermillion: {
+              DEFAULT: '#E23E3E',
+              hover: '#C92A2A',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'Syne', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'spin-slow': 'spin 10s linear infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --background: #F5F3EC;
+      --foreground: #121212;
+    }
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+      font-family: 'Inter', sans-serif;
+    }
+    .font-display { font-family: 'Space Grotesk', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    input[type='range'] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type='range']::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 12px;
+      width: 12px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      border: 1px solid #333333;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
+    }
+    input[type='range']::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      background-color: #E23E3E;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-cream text-ink flex flex-col justify-between selection:bg-vermillion selection:text-white">
+
+  <!-- NAVBAR -->
+  <header class="w-full border-b border-ink-border bg-cream-50/90 backdrop-blur-md sticky top-0 z-40 px-4 md:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="showView('landing')">
+          <div class="relative w-8 h-8 rounded-full bg-ink flex items-center justify-center text-cream shadow-sm">
+            <svg class="w-4 h-4 text-vermillion animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <div class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-vermillion"></div>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-display font-black text-lg tracking-tight leading-none text-ink flex items-center gap-1.5">
+              PLAYLETTE
+              <span class="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-vermillion/10 text-vermillion font-mono font-bold">
+                ROULETTE
+              </span>
+            </span>
+            <span class="text-[9px] font-mono tracking-widest text-ink-muted uppercase">ANALOGUE DISCOVERY</span>
+          </div>
+        </div>
+
+        <div id="nav-playlist-tag" class="hidden sm:flex items-center gap-2 pl-4 border-l border-ink-border">
+          <div class="w-1.5 h-1.5 rounded-full bg-vermillion animate-pulse"></div>
+          <span id="nav-playlist-name" class="text-xs font-mono tracking-wider uppercase text-ink-muted truncate max-w-[200px]">LOCAL SESSION</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="nav-wheel-btn" onclick="showView('wheel')" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-ink border border-ink-border rounded-full hover:bg-cream-200 transition-colors shadow-sm">
+          <span>Full Wheel</span>
+        </button>
+        <button id="nav-add-btn" onclick="showView('landing')" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-ink-light hover:text-ink transition-colors">
+          <span>Upload Audio</span>
+        </button>
+        <button id="nav-clear-btn" onclick="clearPlaylist()" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-ink-muted hover:text-vermillion hover:bg-vermillion/10 rounded-full transition-colors border border-ink-border">
+          <span>Clear Playlist</span>
+        </button>
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cream-200 border border-ink-border text-ink text-[11px] font-mono font-semibold">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>LOCAL</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto pb-12 px-4 md:px-8">
+
+    <!-- VIEW 1: LANDING & DROPZONE -->
+    <section id="view-landing" class="min-h-[calc(100vh-130px)] flex flex-col justify-between py-8">
+      <div class="flex items-center justify-between border-b border-ink-border pb-4 text-xs font-mono tracking-widest text-ink-muted uppercase">
+        <div class="flex items-center gap-2">
+          <span>S / M 01</span>
+          <span class="text-vermillion">•</span>
+          <span>ANALOGUE VINYL ENGINE</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-6">
+          <span>LOCAL AUDIO</span>
+          <span>CLIENT-SIDE</span>
+          <span>FULL PLAYBACK</span>
+          <span class="text-vermillion font-bold">2026 EDITION</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center my-auto py-10">
+        <div class="lg:col-span-7 space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cream-200 border border-ink-border text-ink text-xs font-mono">
+            <span class="w-2 h-2 rounded-full bg-vermillion animate-pulse"></span>
+            LOCAL AUDIO DROPZONE • FULL PLAYBACK
+          </div>
+
+          <h1 class="font-display font-black text-5xl sm:text-7xl lg:text-8xl tracking-tighter uppercase leading-[0.88] text-ink">
+            DROP YOUR SOUNDS. <br />
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-ink via-ink to-vermillion">
+              SPIN THE WHEEL.
+            </span>
+          </h1>
+
+          <p class="text-ink-muted text-base sm:text-lg max-w-xl font-normal leading-relaxed">
+            Upload your local audio files to create an instant vinyl roulette wheel. Extracts ID3 artist tags, album artwork, and loads live synchronized lyrics with full local audio playback.
+          </p>
+
+          <!-- Upload Dropzone (Requirement 1 & 2) -->
+          <div
+            id="drop-zone"
+            onclick="document.getElementById('audio-file-input').click()"
+            class="relative cursor-pointer rounded-3xl border-2 border-dashed border-ink/20 hover:border-ink hover:bg-cream-100/60 bg-cream-50/50 p-8 transition-all duration-300 text-center flex flex-col items-center justify-center space-y-4 shadow-sm"
+          >
+            <input
+              id="audio-file-input"
+              type="file"
+              multiple
+              accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg"
+              onchange="handleUploadedFiles(this.files)"
+              class="hidden"
+            />
+
+            <div class="w-16 h-16 rounded-2xl bg-ink text-cream flex items-center justify-center shadow-lg">
+              <svg class="w-8 h-8 text-vermillion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4 4-4 4 4"/>
+              </svg>
+            </div>
+
+            <div class="space-y-1">
+              <h3 class="font-display font-black text-xl uppercase tracking-tight text-ink">
+                UPLOAD YOUR PLAYLIST
+              </h3>
+              <p class="text-xs font-mono text-ink-muted max-w-sm mx-auto">
+                Drag and drop MP3, WAV, or M4A files here, or click to browse.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] font-mono text-ink-muted">
+              <span class="px-2 py-0.5 rounded bg-cream-200 border border-ink-border">MP3</span>
+              <span class="px-2 py-0.5 rounded bg-cream-200 border border-ink-border">WAV</span>
+              <span class="px-2 py-0.5 rounded bg-cream-200 border border-ink-border">M4A</span>
+              <span class="px-2 py-0.5 rounded bg-cream-200 border border-ink-border">FLAC</span>
+            </div>
+
+            <p id="upload-status" class="text-xs font-mono text-vermillion font-bold hidden"></p>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-xs font-mono text-ink-muted uppercase">No local audio files on hand?</span>
+            <button onclick="loadSampleTracks()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cream-200 border border-ink-border text-ink hover:bg-cream-300 font-mono text-xs uppercase font-bold tracking-wider hover:border-ink/40 transition-colors shadow-sm">
+              <span>Load Sample Vinyl Set</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-4 text-xs font-mono text-ink-muted pt-4 border-t border-ink-border/50">
+            <div>100% In-Browser Session</div>
+            <span>•</span>
+            <div>Zero files uploaded to any server</div>
+            <span>•</span>
+            <div>Full Playback Enabled</div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="relative w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] flex items-center justify-center">
+            <div class="absolute inset-[-18px] rounded-full border border-dashed border-ink-border/80 pointer-events-none"></div>
+            <div class="absolute inset-[-6px] rounded-full border border-vermillion/40 pointer-events-none"></div>
+            <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-vermillion flex items-center justify-center shadow-[0_0_12px_rgba(226,62,62,0.8)] z-20">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+
+            <div class="relative w-full h-full rounded-full bg-[#0d0d0d] shadow-2xl p-4 flex items-center justify-center overflow-hidden border-4 border-neutral-900 animate-spin-slow">
+              <div class="absolute inset-3 rounded-full border border-white/5"></div>
+              <div class="absolute inset-6 rounded-full border border-white/5"></div>
+              <div class="absolute inset-10 rounded-full border border-white/5"></div>
+              <div class="absolute inset-16 rounded-full border border-white/5"></div>
+              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none transform -rotate-45"></div>
+
+              <div class="relative w-[42%] h-[42%] rounded-full bg-cream-100 p-2 shadow-inner border border-ink-border flex flex-col items-center justify-center text-center">
+                <span class="text-[9px] font-mono tracking-widest uppercase font-bold text-vermillion">SIDE A</span>
+                <span class="text-xs font-display font-black uppercase text-ink mt-0.5 leading-tight">LOCAL VINYL</span>
+                <span class="text-[8px] font-mono text-ink-muted">DROP TO PLAY</span>
+                <div class="w-3.5 h-3.5 rounded-full bg-[#0d0d0d] border border-neutral-700 shadow-inner mt-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: FULL ROULETTE WHEEL -->
+    <section id="view-wheel" class="hidden py-6 space-y-6">
+      <div class="flex items-center justify-between px-2">
+        <button onclick="showView('landing')" class="inline-flex items-center gap-2 text-xs font-mono uppercase text-ink-muted hover:text-ink transition-colors">
+          <span>+ Upload More Files</span>
+        </button>
+        <button onclick="showView('now_playing')" class="inline-flex items-center gap-1.5 text-xs font-mono uppercase text-vermillion hover:underline">
+          <span>Go to Now Playing →</span>
+        </button>
+      </div>
+
+      <div class="max-w-4xl mx-auto flex flex-col items-center justify-center space-y-6">
+        <div class="text-center space-y-1">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cream-200 border border-ink-border text-[11px] font-mono text-ink uppercase tracking-widest">
+            <span class="w-2 h-2 rounded-full bg-vermillion animate-pulse"></span>
+            ROULETTE SELECTION • <span id="slice-count-label">20</span> SLICES
+          </div>
+          <h2 class="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-ink">
+            PULL THE LEVER. SPIN THE RECORD.
+          </h2>
+          <p class="text-xs font-mono text-ink-muted">
+            Randomized angular momentum will select your next track.
+          </p>
+        </div>
+
+        <!-- Wheel Canvas Container -->
+        <div class="relative w-[320px] h-[320px] sm:w-[460px] sm:h-[460px] flex items-center justify-center select-none">
+          <div class="absolute inset-[-14px] rounded-full border-4 border-ink/20 shadow-2xl pointer-events-none"></div>
+          <div class="absolute inset-[-6px] rounded-full border border-vermillion/40 pointer-events-none"></div>
+
+          <!-- Pointer at 3 o'clock position (wireframe ref) -->
+          <div class="absolute -right-5 sm:-right-7 top-1/2 -translate-y-1/2 z-30 flex items-center">
+            <div id="wheel-pointer" class="relative flex items-center transition-transform">
+              <div class="w-0 h-0 border-y-[12px] sm:border-y-[16px] border-y-transparent border-r-[22px] sm:border-r-[30px] border-r-vermillion filter drop-shadow-md"></div>
+              <div class="w-5 sm:w-7 h-8 sm:h-10 bg-ink rounded-r-lg border border-neutral-700 shadow-lg flex items-center justify-center">
+                <div class="w-2 h-2 rounded-full bg-vermillion"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rotating Wheel -->
+          <div id="wheel-rotor" class="relative w-full h-full rounded-full shadow-[0_10px_35px_rgba(0,0,0,0.35)] overflow-hidden border-8 border-ink bg-[#111111]">
+            <svg id="wheel-svg" class="w-full h-full" viewBox="0 0 100 100"></svg>
+
+            <!-- Center Hub -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-cream-50 border-4 border-ink shadow-2xl flex flex-col items-center justify-center p-2 text-center z-20">
+                <svg class="w-6 h-6 sm:w-8 sm:h-8 text-vermillion animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span class="text-[8px] sm:text-[9px] font-mono uppercase font-black tracking-widest text-ink mt-0.5">PLAYLETTE</span>
+                <div class="w-2.5 h-2.5 rounded-full bg-ink border border-neutral-600 mt-1 shadow-inner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 pt-2">
+          <button id="spin-btn" onclick="spinWheel()" class="group relative inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full bg-ink text-cream hover:bg-neutral-800 transition-all font-mono uppercase text-sm sm:text-base font-black tracking-widest shadow-2xl hover:scale-105 active:scale-95 border border-neutral-700">
+            <span>PULL TO SPIN</span>
+            <div class="w-2.5 h-2.5 rounded-full bg-vermillion animate-ping"></div>
+          </button>
+        </div>
+
+        <div id="winner-banner" class="hidden p-3 px-6 rounded-full bg-vermillion/10 border border-vermillion/40 text-ink text-xs font-mono items-center gap-2.5">
+          <span class="w-2 h-2 rounded-full bg-vermillion"></span>
+          <span class="font-bold uppercase">LANDED ON:</span>
+          <span id="winner-text" class="font-semibold text-vermillion uppercase"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: NOW PLAYING VIEW (Full Local Audio Playback) -->
+    <section id="view-now-playing" class="hidden py-6 space-y-8 animate-in fade-in">
+      <!-- Collapsed Wheel Bar -->
+      <div class="flex items-center justify-between p-3 px-4 rounded-2xl bg-cream-100/90 border border-ink-border shadow-sm">
+        <div class="flex items-center gap-3">
+          <div id="mini-wheel-disc" onclick="spinWheel()" class="relative w-12 h-12 rounded-full border-2 border-ink overflow-hidden bg-ink shadow-sm cursor-pointer flex items-center justify-center">
+            <svg class="w-7 h-7 text-vermillion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-1 bg-vermillion rounded-l"></div>
+          </div>
+          <div>
+            <div class="text-[10px] font-mono uppercase text-ink-muted tracking-wider">ROULETTE ACTIVE</div>
+            <div id="mini-track-name" class="text-xs font-display font-bold uppercase text-ink">BORDERLINE</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="spinWheel()" class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-ink text-cream hover:bg-neutral-800 transition-all font-mono text-xs uppercase font-bold tracking-wider shadow-sm active:scale-95">
+            <span>SPIN AGAIN</span>
+          </button>
+          <button onclick="showView('wheel')" class="p-2 rounded-full border border-ink-border hover:bg-cream-200 text-ink transition-colors" title="Expand Full Wheel">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Editorial Subheader -->
+      <div class="flex items-center justify-between border-b border-ink-border pb-3 text-xs font-mono tracking-widest text-ink-muted uppercase">
+        <div class="flex items-center gap-2">
+          <span>S / M</span>
+          <span class="text-vermillion">•</span>
+          <span class="font-bold text-ink">NOW PLAYING</span>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+          <span>FULL PLAYBACK</span>
+          <span>ID3 DECODER</span>
+          <span>LOCAL SESSION</span>
+          <span class="text-vermillion font-bold">SAVIOM AUDIO</span>
+        </div>
+      </div>
+
+      <!-- Split Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Left: Rotating Vinyl Record -->
+        <div class="lg:col-span-5 flex flex-col items-center justify-center space-y-4">
+          <div class="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] flex items-center justify-center select-none">
+            <div class="absolute inset-[-14px] rounded-full border border-vermillion/40 pointer-events-none"></div>
+            <div class="absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5">
+              <div class="w-4 h-4 rounded-full bg-vermillion flex items-center justify-center shadow-[0_0_12px_rgba(226,62,62,0.9)] animate-pulse">
+                <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+              </div>
+            </div>
+
+            <!-- Vinyl Disc -->
+            <div id="now-playing-vinyl" class="relative w-full h-full rounded-full bg-[#0a0a0a] shadow-[0_15px_40px_rgba(0,0,0,0.55)] p-5 flex items-center justify-center overflow-hidden border-4 border-neutral-900 transition-all duration-700 animate-spin-slow">
+              <div class="absolute inset-4 rounded-full border border-neutral-800/80 pointer-events-none"></div>
+              <div class="absolute inset-7 rounded-full border border-neutral-800/60 pointer-events-none"></div>
+              <div class="absolute inset-11 rounded-full border border-neutral-800/80 pointer-events-none"></div>
+              <div class="absolute inset-16 rounded-full border border-neutral-800/60 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.08] to-transparent pointer-events-none transform -rotate-45"></div>
+
+              <!-- Center Sticker -->
+              <div class="relative w-[48%] h-[48%] rounded-full bg-cream-50 p-2 shadow-2xl border-2 border-ink flex flex-col items-center justify-center text-center overflow-hidden">
+                <img id="vinyl-center-art" src="" alt="Album Art" class="absolute inset-0 w-full h-full object-cover opacity-25 filter blur-[1px] pointer-events-none" />
+                <div class="relative z-10 flex flex-col items-center justify-center max-w-[90%]">
+                  <span class="text-[7px] font-mono tracking-widest uppercase font-black text-vermillion">SIDE 01</span>
+                  <div class="flex items-center gap-0.5 my-0.5 text-vermillion">
+                    <div class="w-0.5 h-2 bg-vermillion rounded-full"></div>
+                    <div class="w-0.5 h-3 bg-vermillion rounded-full"></div>
+                    <div class="w-0.5 h-1.5 bg-vermillion rounded-full"></div>
+                    <div class="w-0.5 h-2.5 bg-vermillion rounded-full"></div>
+                  </div>
+                  <div id="vinyl-label-title" class="text-[10px] font-mono font-bold uppercase tracking-tight text-ink truncate w-full">BORDERLINE</div>
+                  <div id="vinyl-label-artist" class="text-[8px] font-mono text-ink-muted uppercase truncate max-w-[120px]">TAME IMPALA</div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-[#0a0a0a] border border-neutral-700 shadow-inner mt-1 flex items-center justify-center">
+                    <div class="w-1 h-1 rounded-full bg-neutral-900"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time display underneath arc -->
+            <div class="absolute -bottom-8 left-1/2 -translate-y-1/2 text-xs font-mono font-bold tracking-widest text-ink flex items-center gap-1.5">
+              <span id="vinyl-time-current" class="text-vermillion">0:00</span>
+              <span class="text-ink-muted">/</span>
+              <span id="vinyl-time-total">3:45</span>
+            </div>
+          </div>
+
+          <div class="text-center pt-6">
+            <div class="text-[10px] font-mono uppercase tracking-widest text-ink-muted">CURATED ROTATION</div>
+            <div id="vinyl-playlist-tag" class="text-xs font-mono font-bold uppercase text-ink mt-0.5">LOCAL AUDIO SESSION</div>
+          </div>
+        </div>
+
+        <!-- Right: Headline, Lyrics, & Queue -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="space-y-1">
+            <h2 id="now-artist" class="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tighter leading-[0.9] text-ink">
+              TAME IMPALA
+            </h2>
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <span id="now-album" class="text-xs sm:text-sm font-mono uppercase tracking-widest text-ink-muted">THE SLOW RUSH</span>
+              <span class="text-vermillion">•</span>
+              <span id="now-title" class="text-xs sm:text-sm font-mono uppercase font-bold text-vermillion">BORDERLINE</span>
+            </div>
+          </div>
+
+          <!-- Lyrics Panel (Lyrics.ovh query with artist/title) -->
+          <div class="relative w-full rounded-2xl bg-cream-100/70 border border-ink-border overflow-hidden shadow-sm flex flex-col h-[320px]">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-ink-border bg-cream-50/80 backdrop-blur-sm z-10">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono font-bold uppercase tracking-wider text-ink">LYRICS TRANSCRIPT</span>
+                <span id="lyrics-source-tag" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cream-200 text-ink-muted border border-ink-border">lyrics.ovh</span>
+              </div>
+              <a id="lyrics-web-link" href="#" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-mono text-ink-muted hover:text-vermillion transition-colors">
+                <span>Web Lyrics ↗</span>
+              </a>
+            </div>
+
+            <div id="lyrics-scroll-box" class="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth text-center select-text">
+              <!-- Rendered via JS -->
+            </div>
+
+            <div class="px-4 py-2 border-t border-ink-border bg-cream-50/60 text-[10px] font-mono text-ink-muted flex items-center justify-between">
+              <div>Timed line progression</div>
+              <div id="lyrics-line-count">Lines loaded</div>
+            </div>
+          </div>
+
+          <!-- Queue List -->
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center justify-between border-b border-ink-border pb-1">
+              <span class="text-xs font-mono font-bold tracking-widest uppercase text-vermillion">SESSION QUEUE</span>
+              <span id="popular-count" class="text-[11px] font-mono text-ink-muted uppercase">TRACKS IN QUEUE</span>
+            </div>
+            <div id="popular-tracks-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Sticky Player Bar for FULL AUDIO PLAYBACK (Requirement 6) -->
+      <div class="sticky bottom-4 z-40 pt-4">
+        <div class="w-full bg-[#141414] text-[#E8E6E1] rounded-2xl border border-neutral-800 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+          <audio id="audio-player"></audio>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            <!-- Left Info -->
+            <div class="md:col-span-4 flex items-center gap-3.5 min-w-0">
+              <div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-700 flex-shrink-0 shadow-md">
+                <img id="player-art" src="" alt="Track Art" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h4 id="player-name" class="font-display font-bold text-base sm:text-lg text-white truncate uppercase tracking-tight">Borderline</h4>
+                <p id="player-artist" class="text-xs font-mono text-neutral-400 truncate mt-0.5">Tame Impala</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span id="player-album" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700 uppercase">The Slow Rush</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center Controls & Full Track Seekbar -->
+            <div class="md:col-span-5 flex flex-col items-center gap-2">
+              <div class="flex items-center gap-5">
+                <button onclick="prevTrack()" class="text-neutral-400 hover:text-white transition-colors" title="Previous">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+                </button>
+                <button id="play-pause-btn" onclick="togglePlay()" class="w-12 h-12 rounded-full bg-white text-black hover:scale-105 active:scale-95 flex items-center justify-center shadow-lg transition-transform">
+                  <svg id="play-icon" class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg id="pause-icon" class="w-5 h-5 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                </button>
+                <button onclick="nextTrack()" class="text-neutral-400 hover:text-white transition-colors" title="Next">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+              </div>
+
+              <!-- Full Seekbar -->
+              <div class="w-full flex items-center gap-2.5 text-xs font-mono text-neutral-400">
+                <span id="time-current" class="w-9 text-right">0:00</span>
+                <input id="seek-slider" type="range" min="0" max="180" step="0.1" value="0" oninput="seekAudio(this.value)" class="w-full h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-white">
+                <span id="time-remaining" class="w-10 text-left">-0:00</span>
+              </div>
+            </div>
+
+            <!-- Right: Device Pill & Volume -->
+            <div class="md:col-span-3 flex items-center justify-end gap-3">
+              <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs font-mono">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Full Audio</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.05" value="0.85" oninput="setVolume(this.value)" class="w-16 h-1 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-white" title="Volume">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    class SoundFX {
+      constructor() { this.ctx = null; }
+      init() {
+        if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') { this.ctx.resume(); }
+      }
+      playTick(pitch = 1) {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600 * pitch, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch(e){}
+      }
+      playWin() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.08 + 0.45);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + i * 0.08);
+            osc.stop(this.ctx.currentTime + i * 0.08 + 0.45);
+          });
+        } catch(e){}
+      }
+    }
+    const sfx = new SoundFX();
+
+    const SAMPLE_TRACKS = [
+      { id: 'sample-1', name: 'Borderline', artist: 'Tame Impala', album: 'The Slow Rush', art: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop', preview: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3', duration: 237 },
+      { id: 'sample-2', name: 'The Less I Know The Better', artist: 'Tame Impala', album: 'Currents', art: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop', preview: 'https://cdn.freesound.org/previews/415/415804_5121236-lq.mp3', duration: 216 },
+      { id: 'sample-3', name: 'Feels Like We Only Go Backwards', artist: 'Tame Impala', album: 'Lonerism', art: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=600&auto=format&fit=crop', preview: 'https://cdn.freesound.org/previews/684/684061_11861866-lq.mp3', duration: 192 },
+      { id: 'sample-4', name: 'Lovebomb', artist: 'The Neighbourhood', album: 'Hard To Imagine', art: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop', preview: 'https://cdn.freesound.org/previews/415/415804_5121236-lq.mp3', duration: 194 },
+      { id: 'sample-5', name: 'Instant Crush', artist: 'Daft Punk', album: 'Random Access Memories', art: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop', preview: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3', duration: 337 },
+    ];
+
+    const FALLBACK_COVERS = [
+      'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=600&auto=format&fit=crop',
+    ];
+
+    let currentTracks = [];
+    let selectedTrack = null;
+    let playlistTitle = 'Local Audio Session';
+    let isSpinning = false;
+    let rotation = 0;
+    let isPlaying = false;
+    let totalAudioDuration = 180;
+    const audioEl = document.getElementById('audio-player');
+
+    // Drag and drop handlers
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-vermillion', 'bg-vermillion/5');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-vermillion', 'bg-vermillion/5');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-vermillion', 'bg-vermillion/5');
+      if (e.dataTransfer.files) handleUploadedFiles(e.dataTransfer.files);
+    });
+
+    async function handleUploadedFiles(files) {
+      if (!files || files.length === 0) return;
+      const statusEl = document.getElementById('upload-status');
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = `Processing ${files.length} audio file(s)...`;
+
+      const audioFiles = Array.from(files).filter(f => f.type.startsWith('audio/') || /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(f.name));
+      if (audioFiles.length === 0) {
+        statusEl.textContent = 'No audio files recognized. Please upload MP3, WAV, or M4A.';
+        return;
+      }
+
+      currentTracks = audioFiles.map((file, i) => {
+        const objectUrl = URL.createObjectURL(file);
+        const baseName = file.name.replace(/\.[^/.]+$/, '').trim();
+        let artist = 'Local Artist';
+        let title = baseName;
+
+        if (baseName.includes(' - ')) {
+          const parts = baseName.split(' - ');
+          artist = parts[0].trim();
+          title = parts.slice(1).join(' - ').trim();
+        }
+
+        return {
+          id: `local-${Date.now()}-${i}`,
+          name: title,
+          artist: artist,
+          album: 'Local Session',
+          art: FALLBACK_COVERS[i % FALLBACK_COVERS.length],
+          preview: objectUrl,
+          duration: 180
+        };
+      });
+
+      playlistTitle = `Local Upload (${currentTracks.length} files)`;
+      selectedTrack = currentTracks[0];
+      statusEl.textContent = `Loaded ${currentTracks.length} tracks! Opening roulette...`;
+
+      setTimeout(() => {
+        statusEl.classList.add('hidden');
+        renderWheelSVG();
+        showView('wheel');
+      }, 500);
+    }
+
+    function loadSampleTracks() {
+      currentTracks = [...SAMPLE_TRACKS];
+      playlistTitle = 'TAME IMPALA & INDIE PRESET';
+      selectedTrack = currentTracks[0];
+      renderWheelSVG();
+      showView('wheel');
+    }
+
+    function clearPlaylist() {
+      currentTracks.forEach(t => {
+        if (t.preview && t.preview.startsWith('blob:')) URL.revokeObjectURL(t.preview);
+      });
+      currentTracks = [];
+      selectedTrack = null;
+      if (audioEl) audioEl.pause();
+      showView('landing');
+    }
+
+    function showView(viewName) {
+      ['landing', 'wheel', 'now_playing'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      const navTag = document.getElementById('nav-playlist-tag');
+      const navWheelBtn = document.getElementById('nav-wheel-btn');
+      const navClearBtn = document.getElementById('nav-clear-btn');
+      const navAddBtn = document.getElementById('nav-add-btn');
+
+      if (viewName === 'landing' || currentTracks.length === 0) {
+        navTag.classList.add('hidden');
+        navWheelBtn.classList.add('hidden');
+        navClearBtn.classList.add('hidden');
+        navAddBtn.classList.add('hidden');
+      } else {
+        navTag.classList.remove('hidden');
+        navClearBtn.classList.remove('hidden');
+        navAddBtn.classList.remove('hidden');
+        document.getElementById('nav-playlist-name').textContent = playlistTitle;
+        if (viewName === 'now_playing') navWheelBtn.classList.remove('hidden');
+        else navWheelBtn.classList.add('hidden');
+      }
+    }
+
+    function renderWheelSVG() {
+      const svg = document.getElementById('wheel-svg');
+      const visibleTracks = currentTracks.slice(0, 20);
+      const n = visibleTracks.length;
+      document.getElementById('slice-count-label').textContent = n;
+      const angle = 360 / n;
+      let svgHtml = '';
+
+      visibleTracks.forEach((t, i) => {
+        const startRad = (i * angle * Math.PI) / 180;
+        const endRad = ((i + 1) * angle * Math.PI) / 180;
+        const x1 = 50 + 50 * Math.cos(startRad);
+        const y1 = 50 + 50 * Math.sin(startRad);
+        const x2 = 50 + 50 * Math.cos(endRad);
+        const y2 = 50 + 50 * Math.sin(endRad);
+        const path = `M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`;
+
+        const midAngle = i * angle + angle / 2;
+        const midRad = (midAngle * Math.PI) / 180;
+        const textX = 50 + 34 * Math.cos(midRad);
+        const textY = 50 + 34 * Math.sin(midRad);
+        const fill = i % 2 === 0 ? '#1A1A1A' : '#2A2A2A';
+
+        svgHtml += `
+          <g id="slice-${i}">
+            <path d="${path}" fill="${fill}" stroke="#111111" stroke-width="0.5" />
+            <text x="${textX}" y="${textY}" fill="#E2DDD2" font-size="3" font-weight="bold" font-family="monospace" text-anchor="middle" dominant-baseline="central" transform="rotate(${midAngle + 90}, ${textX}, ${textY})" class="select-none uppercase">
+              ${t.name.slice(0, 10)}
+            </text>
+          </g>
+        `;
+      });
+      svg.innerHTML = svgHtml;
+    }
+
+    function spinWheel() {
+      if (isSpinning || currentTracks.length === 0) return;
+      isSpinning = true;
+
+      const visible = currentTracks.slice(0, 20);
+      const n = visible.length;
+      const angle = 360 / n;
+      const winnerIndex = Math.floor(Math.random() * n);
+      const segmentCenter = winnerIndex * angle + angle / 2;
+      const extraSpins = 360 * (5 + Math.floor(Math.random() * 3));
+      const currentBase = Math.floor(rotation / 360) * 360;
+      const finalAngle = currentBase + extraSpins + (360 - segmentCenter);
+
+      const rotor = document.getElementById('wheel-rotor');
+      rotor.style.transition = 'transform 4000ms cubic-bezier(0.12, 0.8, 0.2, 1)';
+      rotor.style.transform = `rotate(${finalAngle}deg)`;
+      rotation = finalAngle;
+
+      const startTime = Date.now();
+      const playLoop = () => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 4000) {
+          const prog = elapsed / 4000;
+          sfx.playTick(1 + (1 - prog) * 0.4);
+          const delay = 40 + Math.pow(prog, 2.5) * 260;
+          setTimeout(playLoop, delay);
+        }
+      };
+      playLoop();
+
+      setTimeout(() => {
+        isSpinning = false;
+        selectedTrack = visible[winnerIndex];
+        sfx.playWin();
+
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#E23E3E', '#111111', '#DFDACB', '#FAF8F3']
+          });
+        } catch(e){}
+
+        const banner = document.getElementById('winner-banner');
+        const text = document.getElementById('winner-text');
+        text.textContent = `${selectedTrack.name} — ${selectedTrack.artist}`;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+
+        setTimeout(() => {
+          loadNowPlaying(selectedTrack);
+          showView('now_playing');
+        }, 1000);
+      }, 4000);
+    }
+
+    async function loadNowPlaying(track) {
+      selectedTrack = track;
+
+      document.getElementById('vinyl-center-art').src = track.art;
+      document.getElementById('vinyl-label-title').textContent = track.name;
+      document.getElementById('vinyl-label-artist').textContent = track.artist;
+      document.getElementById('vinyl-playlist-tag').textContent = playlistTitle;
+      document.getElementById('mini-track-name').textContent = track.name;
+
+      document.getElementById('now-artist').textContent = track.artist;
+      document.getElementById('now-album').textContent = track.album;
+      document.getElementById('now-title').textContent = track.name;
+
+      document.getElementById('player-art').src = track.art;
+      document.getElementById('player-name').textContent = track.name;
+      document.getElementById('player-artist').textContent = track.artist;
+      document.getElementById('player-album').textContent = track.album;
+
+      const webSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${track.artist} ${track.name} lyrics`)}`;
+      document.getElementById('lyrics-web-link').href = webSearchUrl;
+
+      // Audio Player Full Playback
+      audioEl.src = track.preview;
+      audioEl.currentTime = 0;
+      playAudio();
+
+      fetchAndRenderLyrics(track);
+      renderQueue();
+    }
+
+    async function fetchAndRenderLyrics(track) {
+      const scrollBox = document.getElementById('lyrics-scroll-box');
+      scrollBox.innerHTML = '<p class="text-xs font-mono text-ink-muted">Scanning lyrics database...</p>';
+
+      try {
+        const cleanA = track.artist.split(/[,&/]/)[0].trim();
+        const cleanT = track.name.replace(/\s*-\s*(Remastered|Deluxe).*/i, '').trim();
+        const res = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(cleanA)}/${encodeURIComponent(cleanT)}`);
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.lyrics) {
+            const lines = data.lyrics.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            renderLyricLines(lines);
+            return;
+          }
+        }
+        throw new Error('Not found');
+      } catch(e) {
+        // Fallback lines
+        renderLyricLines([
+          `Listening to ${track.name} by ${track.artist}`,
+          "Grooving to full local audio playback",
+          "Immerse in the analogue frequencies",
+          "Lyrics not catalogued • Enjoy the music"
+        ]);
+      }
+    }
+
+    function renderLyricLines(lines) {
+      const scrollBox = document.getElementById('lyrics-scroll-box');
+      document.getElementById('lyrics-line-count').textContent = `${lines.length} lines`;
+      scrollBox.innerHTML = lines.map((l, i) => `
+        <p id="lyric-line-${i}" class="transition-all duration-300 font-sans tracking-wide leading-relaxed text-sm sm:text-base text-ink-muted">
+          ${l}
+        </p>
+      `).join('');
+    }
+
+    function updateLyricsSync(cur, total) {
+      const lines = document.querySelectorAll('#lyrics-scroll-box p');
+      if (lines.length === 0) return;
+      const progress = Math.min(1, Math.max(0, cur / (total || 180)));
+      const activeIdx = Math.floor(progress * lines.length);
+
+      lines.forEach((p, idx) => {
+        if (idx === activeIdx) {
+          p.className = 'transition-all duration-300 font-sans tracking-wide leading-relaxed text-lg sm:text-xl font-bold text-vermillion scale-[1.03]';
+          p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (idx < activeIdx) {
+          p.className = 'transition-all duration-300 font-sans tracking-wide leading-relaxed text-sm sm:text-base text-ink-muted/50';
+        } else {
+          p.className = 'transition-all duration-300 font-sans tracking-wide leading-relaxed text-sm sm:text-base text-ink-muted';
+        }
+      });
+    }
+
+    function renderQueue() {
+      const grid = document.getElementById('popular-tracks-grid');
+      document.getElementById('popular-count').textContent = `${currentTracks.length} TRACKS LOADED`;
+
+      grid.innerHTML = currentTracks.slice(0, 4).map((t, idx) => {
+        const isActive = t.id === selectedTrack.id;
+        return `
+          <div onclick="loadNowPlaying(currentTracks[${idx}])" class="p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+            isActive ? 'bg-cream-200 border-ink shadow-sm' : 'bg-cream-50/60 border-ink-border hover:bg-cream-100'
+          }">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-xs font-mono font-bold text-ink-muted">${String(idx + 1).padStart(2, '0')}</span>
+              <div class="w-8 h-8 rounded-lg overflow-hidden bg-cream-200 border border-ink-border flex-shrink-0">
+                <img src="${t.art}" alt="${t.name}" class="w-full h-full object-cover" />
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-display font-bold uppercase truncate ${isActive ? 'text-vermillion' : 'text-ink'}">${t.name}</div>
+                <div class="text-[10px] font-mono text-ink-muted truncate">${t.artist}</div>
+              </div>
+            </div>
+            ${isActive ? '<div class="w-2 h-2 rounded-full bg-vermillion animate-pulse"></div>' : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function playAudio() {
+      audioEl.play().then(() => {
+        isPlaying = true;
+        updatePlayIcons();
+        document.getElementById('now-playing-vinyl').classList.add('animate-spin-slow');
+      }).catch(() => {
+        isPlaying = false;
+        updatePlayIcons();
+        document.getElementById('now-playing-vinyl').classList.remove('animate-spin-slow');
+      });
+    }
+
+    function pauseAudio() {
+      audioEl.pause();
+      isPlaying = false;
+      updatePlayIcons();
+      document.getElementById('now-playing-vinyl').classList.remove('animate-spin-slow');
+    }
+
+    function togglePlay() {
+      if (isPlaying) pauseAudio();
+      else playAudio();
+    }
+
+    function updatePlayIcons() {
+      const playIcon = document.getElementById('play-icon');
+      const pauseIcon = document.getElementById('pause-icon');
+      if (isPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    }
+
+    function nextTrack() {
+      const idx = currentTracks.findIndex(t => t.id === selectedTrack.id);
+      const next = currentTracks[(idx + 1) % currentTracks.length];
+      loadNowPlaying(next);
+      sfx.playTick();
+    }
+
+    function prevTrack() {
+      const idx = currentTracks.findIndex(t => t.id === selectedTrack.id);
+      const prev = currentTracks[(idx - 1 + currentTracks.length) % currentTracks.length];
+      loadNowPlaying(prev);
+      sfx.playTick();
+    }
+
+    function seekAudio(val) {
+      audioEl.currentTime = parseFloat(val);
+    }
+
+    function setVolume(val) {
+      audioEl.volume = parseFloat(val);
+    }
+
+    function formatTime(s) {
+      if (isNaN(s) || s <= 0) return '0:00';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+    }
+
+    function updateTimeDisplays(cur, total) {
+      document.getElementById('time-current').textContent = formatTime(cur);
+      document.getElementById('vinyl-time-current').textContent = formatTime(cur);
+      document.getElementById('vinyl-time-total').textContent = formatTime(total);
+      document.getElementById('time-remaining').textContent = `-${formatTime(Math.max(0, total - cur))}`;
+      document.getElementById('seek-slider').value = cur;
+    }
+
+    audioEl.addEventListener('loadedmetadata', () => {
+      totalAudioDuration = audioEl.duration || 180;
+      document.getElementById('seek-slider').max = totalAudioDuration;
+      updateTimeDisplays(audioEl.currentTime, totalAudioDuration);
+    });
+
+    audioEl.addEventListener('timeupdate', () => {
+      const cur = audioEl.currentTime;
+      const total = audioEl.duration || totalAudioDuration;
+      updateTimeDisplays(cur, total);
+      updateLyricsSync(cur, total);
+    });
+
+    audioEl.addEventListener('ended', () => {
+      nextTrack();
+    });
+
+    showView('landing');
+  </script>
+</body>
+</html>

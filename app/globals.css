@@ -1,0 +1,283 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700;800&family=Space+Grotesk:wght@600;700;900&family=Syne:wght@700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --mono-border: rgba(255, 255, 255, 0.16);
+  --mono-hover: rgba(255, 255, 255, 0.35);
+  --mono-glow: rgba(255, 255, 255, 0.7);
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image:
+    /* Fine 1-bit stipple/dither texture */
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.02) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.04'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Custom Scrollbar for Stark Monochrome */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* High-Gloss Vinyl Specular Butterfly Reflection (matching Image 2) */
+.vinyl-butterfly-flare {
+  background: conic-gradient(
+    from 45deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.85) 30deg,
+    rgba(255, 255, 255, 0.2) 50deg,
+    transparent 75deg,
+    transparent 110deg,
+    rgba(255, 255, 255, 0.9) 140deg,
+    rgba(255, 255, 255, 0.25) 160deg,
+    transparent 185deg,
+    transparent 220deg,
+    rgba(255, 255, 255, 0.85) 250deg,
+    rgba(255, 255, 255, 0.2) 270deg,
+    transparent 295deg,
+    transparent 330deg,
+    rgba(255, 255, 255, 0.9) 360deg
+  );
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+}
+
+/* Fine concentric microgrooves simulation */
+.vinyl-grooves-pattern {
+  background-image: repeating-radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.08) 0px,
+    rgba(255, 255, 255, 0.08) 1px,
+    transparent 2px,
+    transparent 4px,
+    rgba(255, 255, 255, 0.04) 5px,
+    transparent 7px
+  );
+}
+
+/* 1-Bit Dither Halftone Box Pattern (matching Image 1) */
+.dither-pattern-box {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.12'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.12'/%3E%3C/svg%3E");
+}
+
+.dither-pattern-dense {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 2 2' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.25'/%3E%3C/svg%3E");
+}
+
+/* Stark Monochrome Glass Panel */
+.mono-card {
+  background: rgba(10, 10, 12, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.mono-card-interactive {
+  background: rgba(12, 12, 14, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mono-card-interactive:hover {
+  border-color: #ffffff;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 255, 255, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Range Input: Stark Monochrome Slider with Glowing White Orb */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  width: 14px;
+  margin-top: -5.5px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  box-shadow: 0 0 12px #ffffff, 0 0 20px rgba(255, 255, 255, 0.8);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.35);
+  box-shadow: 0 0 16px #ffffff, 0 0 30px #ffffff;
+}
+
+input[type='range']::-moz-range-track {
+  height: 3px;
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+input[type='range']::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 2px solid #000000;
+  box-shadow: 0 0 12px #ffffff, 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+/* Active Line Text Shimmer in Stark White */
+@keyframes mono-text-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.mono-text-shimmer {
+  background: linear-gradient(
+    90deg,
+    #71717a 0%,
+    #ffffff 50%,
+    #71717a 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: mono-text-shimmer 3s infinite linear;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+/* Aperture Wipe Transition */
+@keyframes aperture-wipe {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+    opacity: 0;
+  }
+  100% {
+    clip-path: circle(150% at 50% 50%);
+    opacity: 1;
+  }
+}
+
+.animate-aperture-wipe {
+  animation: aperture-wipe 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Typography */
+.font-display {
+  font-family: 'Space Grotesk', 'Syne', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* 3D Silver Vinyl Record Shader (matching Image 1) */
+.silver-metallic-surface {
+  background: radial-gradient(
+    circle at center,
+    #18181b 0%,
+    #27272a 18%,
+    #52525b 32%,
+    #a1a1aa 50%,
+    #e4e4e7 68%,
+    #f4f4f5 82%,
+    #d4d4d8 94%,
+    #ffffff 100%
+  );
+}
+
+.silver-conic-shine {
+  background: conic-gradient(
+    from 125deg,
+    rgba(255, 255, 255, 0.95) 0deg,
+    rgba(161, 161, 170, 0.4) 35deg,
+    rgba(24, 24, 27, 0.9) 70deg,
+    rgba(255, 255, 255, 0.2) 110deg,
+    rgba(255, 255, 255, 0.98) 145deg,
+    rgba(161, 161, 170, 0.3) 190deg,
+    rgba(9, 9, 11, 0.95) 235deg,
+    rgba(255, 255, 255, 0.3) 280deg,
+    rgba(255, 255, 255, 0.95) 360deg
+  );
+  mix-blend-mode: screen;
+}
+
+/* Soft Neon Hues / Prismatic Rainbow Chromatic Flare (exact match to Image 1) */
+.prismatic-neon-flare {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 45, 125, 0) 5%,
+    rgba(255, 45, 125, 0.5) 18%,
+    rgba(255, 185, 40, 0.75) 32%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(40, 245, 195, 0.75) 68%,
+    rgba(60, 150, 255, 0.5) 82%,
+    rgba(60, 150, 255, 0) 95%,
+    transparent 100%
+  );
+  filter: blur(5px);
+  mix-blend-mode: screen;
+}
+
+.prismatic-neon-beam {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 45, 125, 0.3) 25%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(40, 245, 195, 0.3) 75%,
+    transparent 100%
+  );
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+}
+
+/* 3D Perspective utilities */
+.perspective-container {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
