@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { exchangeCodeForToken, getDefaultRedirectUri } from '@/lib/spotify';
 import { Disc3, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 
-export default function CallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -102,5 +102,13 @@ export default function CallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CallbackHandler />
+    </Suspense>
   );
 }
